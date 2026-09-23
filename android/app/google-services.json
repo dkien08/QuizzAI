@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "479021110175",
+    "project_id": "quizzai-669e4",
+    "storage_bucket": "quizzai-669e4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:479021110175:android:188bc108f2b81417ec23aa",
+        "android_client_info": {
+          "package_name": "com.example.laptrinhdidong"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC-WIMhekG87MaTkxY_6pKdE4kBdNbPv5c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
