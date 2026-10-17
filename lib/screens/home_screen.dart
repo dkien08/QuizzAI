@@ -162,7 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           controller: _codeController,
                           textCapitalization: TextCapitalization.characters,
                           decoration: const InputDecoration(
-                            hintText: 'Nhập mã đề thi (Code) để vào phòng...',
+                            hintText: 'Nhập mã đề thi...',
                             hintStyle: TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
                             border: InputBorder.none,
                           ),

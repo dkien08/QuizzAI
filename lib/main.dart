@@ -5,8 +5,10 @@ import 'screens/home_screen.dart';
 import 'screens/home/exam_screen.dart';
 // Khi từng thành viên hoàn thành các màn hình tiếp theo, mở comment tương ứng:
 // import 'screens/practice/practice_screen.dart';
-// import 'screens/manage/manage_exams_screen.dart';
-// import 'screens/profile/profile_screen.dart';
+import 'screens/manage/manage_exams_screen.dart';
+import 'screens/profile/profile_screen.dart';
+import 'screens/manage/create_edit_exam_screen.dart';
+import 'screens/manage/exam_stats_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,9 +44,10 @@ class SmartQuizApp extends StatelessWidget {
       routes: {
         // Tab 1: Luồng Thi chính thức (GET /exams/code/:code, POST /exams/submit, GET /exams/result/:id)
         '/exam/take': (context) {
-       final examData = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-       return ExamScreen(examData: examData);
-     },
+          final args = ModalRoute.of(context)?.settings.arguments;
+          final examData = args is Map<String, dynamic> ? args : <String, dynamic>{};
+          return ExamScreen(examData: examData);
+        },
         '/exam/result': (context) => const SubScreenPlaceholder(title: 'Kết quả thi tổng quát'),
 
         // Tab 2: Luồng Ôn tập & AI (GET /exams/code/:code?mode=practice, POST /exams/check-answer, GET /exams/result-detail/:id, POST /chat/ask)
@@ -53,10 +56,19 @@ class SmartQuizApp extends StatelessWidget {
         '/practice/chat-ai': (context) => const SubScreenPlaceholder(title: 'Hỏi đáp Trợ lý AI'),
 
         // Tab 3: Luồng Quản lý đề (GET /exams/my-exams, POST /exams/create, POST /exams/import-excel, GET /exams/:id/stats)
-        '/manage/create': (context) => const SubScreenPlaceholder(title: 'Tạo đề thi mới'),
-        '/manage/stats': (context) => const SubScreenPlaceholder(title: 'Thống kê & Danh sách điểm'),
+        '/manage/create': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          final initialExam = args is Map<String, dynamic> ? args : null;
+          return CreateEditExamScreen(initialExam: initialExam);
+        },
+        '/manage/stats': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          final examInfo = args is Map<String, dynamic> ? args : <String, dynamic>{};
+          return ExamStatsScreen(examInfo: examInfo);
+        },
 
         // Tab 4: Xác thực & Cá nhân (POST /auth/login, POST /auth/register, GET/PUT /users/profile, PUT /users/change-password)
+        '/profile': (context) => const ProfileScreen(),
         '/auth/login': (context) => const SubScreenPlaceholder(title: 'Đăng nhập'),
         '/auth/register': (context) => const SubScreenPlaceholder(title: 'Đăng ký tài khoản'),
         '/profile/change-password': (context) => const SubScreenPlaceholder(title: 'Đổi mật khẩu'),
@@ -76,7 +88,7 @@ class _MainAppShellState extends State<MainAppShell> {
   int _currentIndex = 0;
 
   // Danh sách 4 Tab chính
-  final List<Widget> _tabs = const [
+  final List<Widget> _tabs = [
     HomeScreen(), // Tab 1: Đã gắn trực tiếp màn hình thật kết nối API GET /exams
 
     TabPlaceholder(
@@ -85,18 +97,16 @@ class _MainAppShellState extends State<MainAppShell> {
       icon: Icons.psychology_outlined,
       color: Colors.teal,
     ),
-    TabPlaceholder(
-      title: 'Quản Lý Đề Thi',
-      description: 'Quản lý đề tôi tạo (GET /exams/my-exams), tạo đề thủ công, nhập Excel (POST /exams/import-excel) & Xem thống kê phổ điểm (GET /exams/:id/stats).',
-      icon: Icons.folder_shared_outlined,
-      color: Colors.indigo,
-    ),
-    TabPlaceholder(
-      title: 'Cá Nhân & Bảo Mật',
-      description: 'Hồ sơ người dùng (GET/PUT /users/profile), đổi mật khẩu (PUT /users/change-password) & Đăng nhập/Đăng ký xác thực JWT.',
-      icon: Icons.person_outline,
-      color: Colors.deepPurple,
-    ),
+    ManageExamsScreen(title: 'Quản lý Đề thi',
+  isLoading: false,
+  errorMessage: null,
+  data: [], // Hoặc truyền danh sách đề thi thực tế của bạn vào đây
+  onRefresh: () async {},
+  onExamSelected: (exam) {
+    // Xử lý chuyển màn hình khi bấm vào đề thi
+    print('Đã chọn đề: ${exam.name}');
+  },),
+    ProfileScreen(),
   ];
 
   @override
@@ -117,7 +127,7 @@ class _MainAppShellState extends State<MainAppShell> {
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home),
-            label: 'Thi thật',
+            label: 'Home',
           ),
           NavigationDestination(
             icon: Icon(Icons.auto_stories_outlined),
@@ -127,7 +137,7 @@ class _MainAppShellState extends State<MainAppShell> {
           NavigationDestination(
             icon: Icon(Icons.assignment_outlined),
             selectedIcon: Icon(Icons.assignment),
-            label: 'Quản lý',
+            label: 'Quản lý đề',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),
