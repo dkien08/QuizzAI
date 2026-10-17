@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../entities/base_entity.dart';
 import '../base_layout_screen.dart';
 import '../../entities/exam_entity.dart';
 
