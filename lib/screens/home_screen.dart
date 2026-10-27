@@ -74,6 +74,12 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() => _isSearchingCode = false);
 
       if (exam != null) {
+        if (!exam.allowPractice) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Đề thi này không cho phép ôn tập.')),
+          );
+          return;
+        }
         if (!exam.isPublic && !await _verifyPrivatePassword(exam)) {
           if (mounted) setState(() => _isSearchingCode = false);
           return;
@@ -206,9 +212,17 @@ class _HomeScreenState extends State<HomeScreen> {
         getCode: (item) => item.code,
         getTitle: (item) => item.title,
         getSubtitle: (item) =>
-            'Mã: ${item.code.isNotEmpty ? item.code : "N/A"} · ${item.durationMinutes} phút · ${item.totalQuestions} câu',
+            ' Thời gian: ${item.durationMinutes} phút · ${item.totalQuestions} câu',
         actionLabel: 'Luyện tập ngay',
         onTap: () async {
+          if (!exam.allowPractice) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Đề thi này không cho phép ôn tập.'),
+              ),
+            );
+            return;
+          }
           if (!exam.isPublic && !await _verifyPrivatePassword(exam)) return;
           final questions = await examRepo.getSubcollectionMaps(
             exam.id,
@@ -478,6 +492,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       .where(
                         (exam) =>
                             exam.authorId == currentUserId &&
+                            exam.allowPractice &&
                             _matchesCategory(exam),
                       )
                       .toList();
@@ -486,6 +501,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         (exam) =>
                             exam.isActive &&
                             exam.isPublic &&
+                            exam.allowPractice &&
                             _matchesCategory(exam),
                       )
                       .toList();

@@ -17,6 +17,7 @@ class ExamModel implements BaseModel {
   final String authorName;
   final String authorId;
   final bool isPublic;
+  final bool allowPractice;
   final String accessPassword;
   final String code;
 
@@ -32,6 +33,7 @@ class ExamModel implements BaseModel {
     required this.authorName,
     this.authorId = '',
     required this.isPublic,
+    this.allowPractice = true,
     this.accessPassword = '',
     required this.code,
   }) : createdAt = createdAt ?? DateTime.now(),
@@ -51,6 +53,7 @@ class ExamModel implements BaseModel {
       authorName: map['authorName'] ?? '',
       authorId: map['authorId'] ?? '',
       isPublic: map['isPublic'] ?? true,
+      allowPractice: map['allowPractice'] ?? true,
       accessPassword: map['accessPassword'] ?? '',
       code: map['code'] ?? '',
     );
@@ -70,6 +73,7 @@ class ExamModel implements BaseModel {
       'authorName': authorName,
       'authorId': authorId,
       'isPublic': isPublic,
+      'allowPractice': allowPractice,
       'accessPassword': accessPassword,
       'code': code,
     };
