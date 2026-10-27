@@ -1,0 +1,75 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function examOwner(examId) {
+      return signedIn()
+        && get(/databases/$(database)/documents/exams/$(examId)).data.authorId
+          == request.auth.uid;
+    }
+
+    match /users/{userId} {
+      allow create: if isOwner(userId);
+      allow read, update: if isOwner(userId);
+      allow delete: if false;
+    }
+
+    match /exams/{examId} {
+      allow read: if signedIn()
+        && (resource.data.isActive == true
+          || resource.data.authorId == request.auth.uid);
+      allow create: if signedIn()
+        && request.resource.data.authorId == request.auth.uid;
+      allow update: if examOwner(examId)
+        && request.resource.data.authorId == resource.data.authorId;
+      allow delete: if examOwner(examId);
+
+      match /questions/{questionId} {
+        allow read: if signedIn()
+          && (!exists(/databases/$(database)/documents/exams/$(examId))
+            || get(/databases/$(database)/documents/exams/$(examId)).data.isActive == true
+            || examOwner(examId));
+        allow create: if signedIn()
+          && getAfter(/databases/$(database)/documents/exams/$(examId)).data.authorId
+            == request.auth.uid;
+        allow update, delete: if examOwner(examId);
+      }
+    }
+
+    match /exam_submissions/{submissionId} {
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && exists(/databases/$(database)/documents/exam_sessions/$(request.resource.data.examId + '_' + request.auth.uid))
+        && get(/databases/$(database)/documents/exam_sessions/$(request.resource.data.examId + '_' + request.auth.uid)).data.status == 'active';
+      allow read: if signedIn()
+        && (resource.data.userId == request.auth.uid
+          || examOwner(resource.data.examId));
+      allow update, delete: if false;
+    }
+
+    match /exam_sessions/{sessionId} {
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'active'
+        && !exists(/databases/$(database)/documents/exam_sessions/$(sessionId));
+      allow read: if signedIn()
+        && (resource.data.userId == request.auth.uid
+          || examOwner(resource.data.examId));
+      allow update: if signedIn()
+        && resource.data.userId == request.auth.uid
+        && resource.data.status == 'active'
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.examId == resource.data.examId
+        && request.resource.data.status in ['submitted', 'abandoned', 'timeout'];
+      allow delete: if false;
+    }
+  }
+}
