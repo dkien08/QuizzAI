@@ -1,141 +1,69 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+import '../models/user_model.dart';
+import 'firebase_repository.dart';
 
 class AuthService {
-  static const String baseUrl = 'https://quizzapp-kovj.onrender.com';
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final userRepo = FirebaseRepository<UserModel>('users', UserModel.fromMap);
 
-  static Future<void> saveToken(String token) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('jwt_token', token);
-  }
+  // Lấy User hiện tại từ Firebase Auth
+  User? get currentUser => _auth.currentUser;
 
-  static Future<String?> getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('jwt_token');
-  }
+  // Stream theo dõi trạng thái đăng nhập Realtime
+  Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  static Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('jwt_token');
-  }
-
-  // --- 🔥 GENERIC REQUEST METHOD (Chuẩn hóa cho AuthService) ---
-  static Future<T> _sendGenericAuthRequest<T>({
-    required String endpoint,
-    required String method,
-    Map<String, dynamic>? body,
-    bool requiresAuth = false,
-    required T Function(dynamic json) parser,
+  // 1. Đăng ký Tài khoản mới
+  Future<UserCredential?> signUp({
+    required String fullName,
+    required String email,
+    required String password,
   }) async {
-    final url = Uri.parse('$baseUrl$endpoint');
-    final headers = {'Content-Type': 'application/json'};
-
-    if (requiresAuth) {
-      final token = await getToken();
-      if (token == null) throw Exception('Chưa đăng nhập');
-      headers['Authorization'] = 'Bearer $token';
-    }
-
-    http.Response response;
-    if (method == 'GET') {
-      response = await http.get(url, headers: headers);
-    } else if (method == 'POST') {
-      response = await http.post(url, headers: headers, body: body != null ? jsonEncode(body) : null);
-    } else if (method == 'PUT') {
-      response = await http.put(url, headers: headers, body: body != null ? jsonEncode(body) : null);
-    } else {
-      throw Exception('Phương thức không hợp lệ');
-    }
-
-    final decodedData = jsonDecode(response.body);
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return parser(decodedData);
-    } else {
-      throw Exception(decodedData['message'] ?? 'Lỗi yêu cầu xác thực');
-    }
-  }
-
-  // POST /auth/login
-  static Future<Map<String, dynamic>> login(String username, String password) async {
     try {
-      final data = await _sendGenericAuthRequest<Map<String, dynamic>>(
-        endpoint: '/auth/login',
-        method: 'POST',
-        body: {'username': username, 'password': password},
-        parser: (json) => json,
+      UserCredential credential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
       );
-      if (data['token'] != null) {
-        await saveToken(data['token']);
+
+      if (credential.user != null) {
+        // Tạo UserModel và lưu thông tin vào Firestore Collection 'users'
+        UserModel newUser = UserModel(
+          id: credential.user!.uid,
+          fullName: fullName,
+          email: email,
+          role: 'student',
+          streakDays: 0,
+        );
+
+        await userRepo.add(newUser);
       }
-      return {'success': true, 'data': data};
+      return credential;
     } catch (e) {
-      return {'success': false, 'message': e.toString().replaceAll('Exception: ', '')};
+      rethrow;
     }
   }
 
-  // POST /auth/register
-  static Future<Map<String, dynamic>> register(String username, String password, String fullName) async {
+  // 2. Đăng nhập
+  Future<UserCredential?> signIn({
+    required String email,
+    required String password,
+  }) async {
     try {
-      final data = await _sendGenericAuthRequest<Map<String, dynamic>>(
-        endpoint: '/auth/register',
-        method: 'POST',
-        body: {
-          'username': username,
-          'password': password,
-          'full_name': fullName,
-          'role': 'users',
-        },
-        parser: (json) => json,
+      return await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
       );
-      return {'success': true, 'message': data['message']};
     } catch (e) {
-      return {'success': false, 'message': e.toString().replaceAll('Exception: ', '')};
+      rethrow;
     }
   }
 
-  // GET /users/profile
-  static Future<Map<String, dynamic>> getProfile() async {
-    return await _sendGenericAuthRequest<Map<String, dynamic>>(
-      endpoint: '/users/profile',
-      method: 'GET',
-      requiresAuth: true,
-      parser: (json) => json,
-    );
+  // 3. Đăng xuất
+  Future<void> signOut() async {
+    await _auth.signOut();
   }
 
-  // PUT /users/profile
-  static Future<bool> updateProfile(String fullName) async {
-    try {
-      await _sendGenericAuthRequest<Map<String, dynamic>>(
-        endpoint: '/users/profile',
-        method: 'PUT',
-        requiresAuth: true,
-        body: {'full_name': fullName},
-        parser: (json) => json,
-      );
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  // PUT /users/change-password
-  static Future<Map<String, dynamic>> changePassword(String oldPassword, String newPassword) async {
-    try {
-      final data = await _sendGenericAuthRequest<Map<String, dynamic>>(
-        endpoint: '/users/change-password',
-        method: 'PUT',
-        requiresAuth: true,
-        body: {
-          'old_password': oldPassword,
-          'new_password': newPassword,
-        },
-        parser: (json) => json,
-      );
-      return {'success': true, 'message': data['message'] ?? 'Đổi mật khẩu thành công'};
-    } catch (e) {
-      return {'success': false, 'message': e.toString().replaceAll('Exception: ', '')};
-    }
+  Future<void> sendPasswordResetEmail(String email) {
+    return _auth.sendPasswordResetEmail(email: email);
   }
 }
