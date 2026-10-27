@@ -152,9 +152,11 @@ class _ExamScreenState extends State<ExamScreen> {
       );
       final exam = matches.isEmpty ? null : matches.first;
       if (!mounted) return;
-      setState(() => _isSearching = false);
+      setState(() {
+        _isSearching = false;
+        if (exam == null) _categoryFilter = code;
+      });
       if (exam == null) {
-        _showMessage('Mã phòng không tồn tại hoặc đã bị khóa.');
         return;
       }
       await _openOfficialExam(exam);
@@ -197,21 +199,6 @@ class _ExamScreenState extends State<ExamScreen> {
             padding: const EdgeInsets.all(16),
             children: [
               _buildCodeEntry(),
-              const SizedBox(height: 24),
-              TextField(
-                decoration: InputDecoration(
-                  hintText: 'Lọc theo phân loại (VD: toán, lý, anh)',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _categoryFilter.isEmpty
-                      ? null
-                      : IconButton(
-                          onPressed: () => setState(() => _categoryFilter = ''),
-                          icon: const Icon(Icons.clear),
-                        ),
-                  border: const OutlineInputBorder(),
-                ),
-                onChanged: (value) => setState(() => _categoryFilter = value),
-              ),
               const SizedBox(height: 24),
               const Text(
                 'Đề thi public',
@@ -258,11 +245,21 @@ class _ExamScreenState extends State<ExamScreen> {
                 child: TextField(
                   controller: _codeController,
                   textCapitalization: TextCapitalization.characters,
-                  decoration: const InputDecoration(
-                    hintText: 'Nhập mã (VD: MATH-2609)',
+                  decoration: InputDecoration(
+                    hintText: 'Nhập mã đề hoặc phân loại (VD: MATH-2609, toán)',
                     border: OutlineInputBorder(),
                     isDense: true,
+                    suffixIcon: _codeController.text.isEmpty
+                        ? null
+                        : IconButton(
+                            onPressed: () {
+                              _codeController.clear();
+                              setState(() => _categoryFilter = '');
+                            },
+                            icon: const Icon(Icons.clear),
+                          ),
                   ),
+                  onChanged: (value) => setState(() => _categoryFilter = value),
                 ),
               ),
               const SizedBox(width: 8),

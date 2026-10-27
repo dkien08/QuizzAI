@@ -110,13 +110,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       } else {
-        // Mã không tồn tại hoặc đề bị ẩn
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            backgroundColor: Colors.red,
-            content: Text('Mã phòng thi không tồn tại hoặc đã bị khóa!'),
-          ),
-        );
+        setState(() => _categoryFilter = code);
       }
     } catch (e) {
       if (!mounted) return;
@@ -415,14 +409,25 @@ class _HomeScreenState extends State<HomeScreen> {
                         controller: _codeController,
                         textCapitalization: TextCapitalization
                             .characters, // Tự viết hoa mã code
-                        decoration: const InputDecoration(
-                          hintText: 'Nhập mã đề thi (VD: MATH-2609)...',
+                        decoration: InputDecoration(
+                          hintText: 'Nhập mã đề hoặc phân loại (VD: MATH-2609, toán)...',
                           border: InputBorder.none,
                           hintStyle: TextStyle(
                             fontSize: 13,
                             color: Colors.grey,
                           ),
+                          suffixIcon: _codeController.text.isEmpty
+                              ? null
+                              : IconButton(
+                                  onPressed: () {
+                                    _codeController.clear();
+                                    setState(() => _categoryFilter = '');
+                                  },
+                                  icon: const Icon(Icons.clear),
+                                ),
                         ),
+                        onChanged: (value) =>
+                            setState(() => _categoryFilter = value),
                       ),
                     ),
                     ElevatedButton(
@@ -450,27 +455,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 24),
-
-              TextField(
-                decoration: InputDecoration(
-                  hintText: 'Tìm theo phân loại đề (VD: toán, lý, anh)',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _categoryFilter.isEmpty
-                      ? null
-                      : IconButton(
-                          onPressed: () => setState(() => _categoryFilter = ''),
-                          icon: const Icon(Icons.clear),
-                        ),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-                onChanged: (value) => setState(() => _categoryFilter = value),
               ),
               const SizedBox(height: 16),
 
