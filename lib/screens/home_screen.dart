@@ -74,6 +74,12 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() => _isSearchingCode = false);
 
       if (exam != null) {
+        if (!exam.allowPractice) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Đề thi này không cho phép ôn tập.')),
+          );
+          return;
+        }
         if (!exam.isPublic && !await _verifyPrivatePassword(exam)) {
           if (mounted) setState(() => _isSearchingCode = false);
           return;
@@ -104,13 +110,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       } else {
-        // Mã không tồn tại hoặc đề bị ẩn
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            backgroundColor: Colors.red,
-            content: Text('Mã phòng thi không tồn tại hoặc đã bị khóa!'),
-          ),
-        );
+        setState(() => _categoryFilter = code);
       }
     } catch (e) {
       if (!mounted) return;
@@ -206,9 +206,17 @@ class _HomeScreenState extends State<HomeScreen> {
         getCode: (item) => item.code,
         getTitle: (item) => item.title,
         getSubtitle: (item) =>
-            'Mã: ${item.code.isNotEmpty ? item.code : "N/A"} · ${item.durationMinutes} phút · ${item.totalQuestions} câu',
+            ' Thời gian: ${item.durationMinutes} phút · ${item.totalQuestions} câu',
         actionLabel: 'Luyện tập ngay',
         onTap: () async {
+          if (!exam.allowPractice) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Đề thi này không cho phép ôn tập.'),
+              ),
+            );
+            return;
+          }
           if (!exam.isPublic && !await _verifyPrivatePassword(exam)) return;
           final questions = await examRepo.getSubcollectionMaps(
             exam.id,
@@ -401,14 +409,25 @@ class _HomeScreenState extends State<HomeScreen> {
                         controller: _codeController,
                         textCapitalization: TextCapitalization
                             .characters, // Tự viết hoa mã code
-                        decoration: const InputDecoration(
-                          hintText: 'Nhập mã đề thi (VD: MATH-2609)...',
+                        decoration: InputDecoration(
+                          hintText: 'Nhập mã đề hoặc phân loại (VD: MATH-2609, toán)...',
                           border: InputBorder.none,
                           hintStyle: TextStyle(
                             fontSize: 13,
                             color: Colors.grey,
                           ),
+                          suffixIcon: _codeController.text.isEmpty
+                              ? null
+                              : IconButton(
+                                  onPressed: () {
+                                    _codeController.clear();
+                                    setState(() => _categoryFilter = '');
+                                  },
+                                  icon: const Icon(Icons.clear),
+                                ),
                         ),
+                        onChanged: (value) =>
+                            setState(() => _categoryFilter = value),
                       ),
                     ),
                     ElevatedButton(
@@ -437,27 +456,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
-
-              TextField(
-                decoration: InputDecoration(
-                  hintText: 'Tìm theo phân loại đề (VD: toán, lý, anh)',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _categoryFilter.isEmpty
-                      ? null
-                      : IconButton(
-                          onPressed: () => setState(() => _categoryFilter = ''),
-                          icon: const Icon(Icons.clear),
-                        ),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-                onChanged: (value) => setState(() => _categoryFilter = value),
-              ),
               const SizedBox(height: 16),
 
               StreamBuilder<List<ExamModel>>(
@@ -478,6 +476,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       .where(
                         (exam) =>
                             exam.authorId == currentUserId &&
+                            exam.allowPractice &&
                             _matchesCategory(exam),
                       )
                       .toList();
@@ -486,6 +485,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         (exam) =>
                             exam.isActive &&
                             exam.isPublic &&
+                            exam.allowPractice &&
                             _matchesCategory(exam),
                       )
                       .toList();
