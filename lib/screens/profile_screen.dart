@@ -159,8 +159,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Không thể đổi tên: $error')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Không thể đổi tên: $error')));
     }
   }
 
@@ -433,39 +434,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required VoidCallback onTap,
     bool isDestructive = false,
   }) {
-    return ListTile(
-      onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: isDestructive
-              ? const Color(0xFFFEF2F2)
-              : const Color(0xFFEFF6FF),
-          borderRadius: BorderRadius.circular(10),
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        onTap: onTap,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: isDestructive
+                ? const Color(0xFFFEF2F2)
+                : const Color(0xFFEFF6FF),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: iconColor, size: 22),
         ),
-        child: Icon(icon, color: iconColor, size: 22),
-      ),
-      title: Text(
-        title,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          color: isDestructive ? const Color(0xFFEF4444) : Colors.black87,
+        title: Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: isDestructive ? const Color(0xFFEF4444) : Colors.black87,
+          ),
         ),
-      ),
-      subtitle: Text(
-        subtitle,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontSize: 11, color: Colors.grey),
-      ),
-      trailing: Icon(
-        Icons.chevron_right,
-        color: isDestructive ? const Color(0xFFEF4444) : Colors.grey.shade400,
-        size: 18,
+        subtitle: Text(
+          subtitle,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 11, color: Colors.grey),
+        ),
+        trailing: Icon(
+          Icons.chevron_right,
+          color: isDestructive ? const Color(0xFFEF4444) : Colors.grey.shade400,
+          size: 18,
+        ),
       ),
     );
   }
