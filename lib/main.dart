@@ -11,7 +11,7 @@ import 'screens/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: '.env');
+  await dotenv.load(fileName: '.env', isOptional: true);
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
